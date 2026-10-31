@@ -1,0 +1,15 @@
+{
+  "name": "gym-rush-server",
+  "private": true,
+  "description": "Owns each Gym Rush player's energy balance and checks every run and continue.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler d1 migrations apply DB --local && wrangler dev",
+    "deploy": "wrangler d1 migrations apply DB --remote && wrangler deploy",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "miniflare": "5.20261019.2-beta",
+    "wrangler": "4.152.0"
+  }
+}

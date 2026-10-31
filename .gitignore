@@ -4,3 +4,5 @@ dist/
 node_modules/
 tools/store-art/raw/
 art/*.mp4
+.wrangler/
+.dev.vars

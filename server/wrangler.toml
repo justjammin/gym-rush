@@ -1,0 +1,14 @@
+name = "gym-rush-api"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Browsers may call the API from these origins (and from localhost while developing). "*." matches any subdomain.
+ALLOWED_ORIGINS = "https://justjammin.github.io,*.crazygames.com"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gym-rush"
+# Replace with the id that `npx wrangler d1 create gym-rush` prints.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
