@@ -8,6 +8,15 @@ const BG = '#1d0f2e';
 const SITE = 'https://justjammin.github.io/pump-parade/';
 // Artwork made by tools/store-art: published name in dist/web → file in art/.
 const WEB_ART = { 'icon-192.png': 'icon-192.png', 'icon-512.png': 'icon-512.png', 'apple-touch-icon.png': 'apple-touch-icon.png', 'social.jpg': 'social-1200x630.jpg' };
+// Store covers uploaded beside the zips: name in dist → file in art/.
+const COVERS = {
+  'itch-cover.jpg': 'itch-cover-630x500.jpg',
+  'crazygames-cover-landscape.jpg': 'crazygames-landscape-1920x1080.jpg',
+  'crazygames-cover-portrait.jpg': 'crazygames-portrait-800x1200.jpg',
+  'crazygames-cover-square.jpg': 'crazygames-square-800x800.jpg',
+};
+// The energy server every build talks to (server/). Without it the game has no energy and offers only ad continues.
+const API = process.env.GYM_RUSH_API;
 // Per-host builds. `head` gives the host's tags, from the value of `env` when it needs one, and `zip` is its upload. A host without a zip is a page to host.
 // The game picks its platform row at boot, so a host build only has to load that host's own script.
 const HOSTS = {
@@ -39,7 +48,7 @@ function page({ headExtra = '', bodyExtra = '' } = {}) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="${DESCRIPTION}">
-${headExtra}${head}
+${API ? `<meta name="gym-rush-api" content="${API}">\n` : ''}${headExtra}${head}
 </head>
 <body>
 ${body}
@@ -62,7 +71,8 @@ const keep = (req, res) => { const copy = res.clone(); caches.open(CACHE).then(c
 // Pages go network-first so a new deploy shows up on the next online launch; fonts and icons never change, so cache-first.
 self.addEventListener('fetch', e => {
   const req = e.request;
-  if (req.method !== 'GET') return;
+  // Calls that carry credentials are live energy-server data and must never come from the cache.
+  if (req.method !== 'GET' || req.headers.has('Authorization')) return;
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req).then(res => keep('index.html', res)).catch(() => caches.match('index.html')));
     return;
@@ -125,6 +135,6 @@ for (const [host, { env, head: tags, zip }] of Object.entries(HOSTS)) {
   if (zip) execFileSync('zip', ['-q', '-X', `../${zip}`, 'index.html'], { cwd: `dist/${host}` });
   built.push(`dist/${host}` + (zip ? ` + dist/${zip}` : ''));
 }
-copyFileSync('art/itch-cover-630x500.jpg', 'dist/itch-cover.jpg');
+for (const [name, file] of Object.entries(COVERS)) copyFileSync(`art/${file}`, `dist/${name}`);
 
-console.log(`Built ${version}: dist/web (installable web app), ${built.join(', ')}, dist/itch-cover.jpg` + (skipped.length ? `. Skipped ${skipped.join(', ')}` : ''));
+console.log(`Built ${version}: dist/web (installable web app), ${built.join(', ')}, covers in dist/` + (API ? `, energy server ${API}` : '. No GYM_RUSH_API, so no energy') + (skipped.length ? `. Skipped ${skipped.join(', ')}` : ''));

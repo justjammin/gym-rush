@@ -93,7 +93,12 @@ body { background: var(--ink); color: var(--cream); font-family: var(--body); ov
 .big-btn:hover { transform: translateY(-2px) scale(1.04); }
 .big-btn:active { transform: translateY(4px) scale(.96); box-shadow: 0 2px 0 var(--ink); }
 @keyframes breathe { 50% { box-shadow: 0 6px 0 var(--ink), 0 0 0 7px color-mix(in srgb, var(--hot) 40%, transparent); } }
+.big-btn:disabled { opacity: .5; cursor: not-allowed; animation: none; transform: none; box-shadow: 0 6px 0 var(--ink); }
 .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.choices { display: flex; gap: 10px; flex-wrap: wrap; }
+.choices .big-btn { flex: 1 1 auto; font-size: 18px; padding-inline: 14px; white-space: nowrap; }
+.bolt { width: .8em; height: 1.2em; margin-left: .1em; vertical-align: -.24em; overflow: visible; }
+#walletOver { font-weight: 700; }
 .small { font-size: 12px; color: color-mix(in srgb, var(--ink) 70%, transparent); }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .stats div { background: var(--ink); color: var(--cream); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 2px; animation: cardIn .55s var(--spring) both; }
@@ -116,6 +121,10 @@ body { background: var(--ink); color: var(--cream); font-family: var(--body); ov
 </style>
 
 <div id="app">
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+  <defs><linearGradient id="boltFill" x1="0" y1="0" x2="1" y2="1"><stop offset=".5" stop-color="#3fb8ff"/><stop offset=".5" stop-color="#1f7bff"/></linearGradient></defs>
+  <symbol id="bolt" viewBox="0 0 16 24"><path d="M11 1 2 14h5l-2 9 9-14H9z" fill="url(#boltFill)" stroke="#1d0f2e" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+</svg>
   <canvas id="cv" aria-label="Gym Rush game stage"></canvas>
 
   <header class="hud gutter">
@@ -161,6 +170,7 @@ body { background: var(--ink); color: var(--cream); font-family: var(--body); ov
       <div class="row">
         <button class="big-btn" id="startBtn" type="button">Start the parade</button>
         <span class="small" id="bestTitle"></span>
+        <span class="small" id="walletTitle" hidden></span>
       </div>
     </div>
   </section>
@@ -175,9 +185,27 @@ body { background: var(--ink); color: var(--cream); font-family: var(--body); ov
         <div><b id="oWalls">0</b><span>Walls busted</span></div>
         <div><b id="oPerf">0</b><span>Perfects</span></div>
       </div>
+      <p id="walletOver" hidden></p>
       <div class="row">
         <button class="big-btn" id="againBtn" type="button">March again</button>
         <span class="small" id="bestOver"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="saveScreen" class="overlay gutter" hidden>
+    <div class="card">
+      <span class="eyebrow">LAST HEART</span>
+      <h2>Keep going?</h2>
+      <p>The raccoon is still in sight. Get back up and the parade picks up where it fell.</p>
+      <div class="choices">
+        <button class="big-btn" id="adBtn" type="button">Watch an ad</button>
+        <button class="big-btn" id="energyBtn" type="button"><span id="energyCost">30</span><svg class="bolt" viewBox="0 0 16 24" aria-hidden="true"><use href="#bolt"/></svg></button>
+        <button class="big-btn" id="declineBtn" type="button">No thanks</button>
+      </div>
+      <div class="row">
+        <span class="small" id="walletSave"></span>
+        <span class="small" id="saveNote" role="status"></span>
       </div>
     </div>
   </section>
@@ -339,6 +367,11 @@ const MAX_HEARTS = 3, MAX_CREW = 8, START_CREW = 2, CREW_FIRST = 62, CREW_GAP = 
 // HYPE_WALLS clean walls bring in the hype music and pull the camera back by HYPE_ZOOM for HYPE_PULSE seconds.
 const FLOW_WALLS = 10, HYPE_WALLS = 5, POST_GAP = 65;
 const HYPE_ZOOM = 0.07, HYPE_PULSE = 0.9;
+// Energy per good and perfect wall, and the first "keep going" price, which doubles with each continue in a run.
+// The server holds the real values; these only let the save screen estimate what the player has before it answers.
+const ENERGY_GOOD = 1, ENERGY_PERFECT = 3, CONTINUE_COST = 30;
+// A continue clears walls nearer than REVIVE_CLEAR and staggers the player for REVIVE_GRACE seconds before the run resumes.
+const REVIVE_CLEAR = 600, REVIVE_GRACE = 1;
 // Gain of each soundtrack stem, by name, in each part of the game; a stem a row leaves out is silent there.
 // A run climbs from 'run' to 'hype' at HYPE_WALLS clean walls and to 'peak' at FLOW_WALLS, and a crash drops it back.
 // The stems arrive at the producer's mix levels, where the chords and hats sit far under the drums, so they need large gains.
@@ -1234,6 +1267,7 @@ function crash(w) {
 
 function levelUp() {
   game.level++;
+  economy.settle(game);
   const idx = (game.level - 1) % STAGES.length;
   stageMarks.push({ d: travel + SCENERY_END + 300, idx });
   sfx.level();
@@ -1477,7 +1511,7 @@ function update(dt) {
     if (!last || last.z + game.nextGap <= ZMAX) spawnWall();
     if (player.pose !== 'march' && t - player.poseT > HOLD) setPlayerPose('march');
     checkCrossings(prevTravel);
-    if (state === 'stagger' && t >= game.staggerEnd) { if (game.hearts > 0) state = 'run'; else gameOver(); }
+    if (state === 'stagger' && t >= game.staggerEnd) { if (game.hearts > 0) state = 'run'; else offerSave(); }
   } else if (state === 'title') {
     advance(200 * dt);
   }
@@ -1530,7 +1564,7 @@ function bumpEl(el) { el.classList.remove('bump'); void el.offsetWidth; el.class
 function tick(rdt) {
   rt += rdt;
   if (hitstop > 0) hitstop -= rdt;
-  else if (state === 'over' || state === 'ad') { t += rdt; updatePlayer(rdt * 0.3); updateParticles(rdt); updateAmbient(rdt); }
+  else if (state === 'over' || state === 'ad' || state === 'save') { t += rdt; updatePlayer(rdt * 0.3); updateParticles(rdt); updateAmbient(rdt); }
   else update(rdt * timeScale * lerp(1, MEME_SLOW, memeEnv()));
   camTick(rdt);
   uiTick(rdt);
@@ -1596,7 +1630,11 @@ const cg = () => window.CrazyGames.SDK;
 let earned = false;
 const web = {
   autostart: false,
+  // Whether the host can show a rewarded ad, which the save screen offers once per run.
+  rewarded: false,
   ad: () => Promise.resolve(false),
+  // The signed-in player's host credential for the energy server, as `scheme:token`. Null makes it use a device wallet.
+  token: async () => null,
   gameplay() {},
   happy() {},
   load: key => { try { return localStorage.getItem(key); } catch (e) { return null; } },
@@ -1614,6 +1652,7 @@ const PLATFORMS = {
     },
     // Full Launch on CrazyGames asks for the game to open straight into play, so the title card is skipped.
     autostart: true,
+    rewarded: true,
     // Resolves whether the ad played. Sound goes off only once an ad actually starts, and a failed ad (blocked,
     // unfilled, on cooldown) just lets the game carry on.
     ad: kind => new Promise(done => {
@@ -1622,6 +1661,8 @@ const PLATFORMS = {
     }),
     gameplay: on => (on ? cg().game.gameplayStart() : cg().game.gameplayStop()),
     happy: () => cg().game.happytime(),
+    // Guests have no token and getUserToken throws for them.
+    token: async () => { try { return `cg:${await cg().user.getUserToken()}`; } catch (e) { return null; } },
     // The data module throws unless Progress Save is turned on in the CrazyGames submission.
     load: key => { try { return cg().data.getItem(key); } catch (e) { return null; } },
     save: (key, value) => { try { cg().data.setItem(key, value); } catch (e) {} },
@@ -1629,6 +1670,7 @@ const PLATFORMS = {
   },
   gamedistribution: {
     ...web,
+    rewarded: true,
     // The SDK reads GD_OPTIONS.onEvent as it loads, and the handlers need the game's closures, so the build leaves
     // the script out and it is injected here once the handlers are in place.
     init: () => new Promise(done => {
@@ -1654,6 +1696,7 @@ const PLATFORMS = {
   },
   gamepix: {
     ...web,
+    rewarded: true,
     init: async () => {
       if (!window.GamePix) return false;
       await GamePix.lifecycle.loaded();
@@ -1692,6 +1735,197 @@ function syncGameplay() {
   if (live !== playing) { playing = live; platform.gameplay(live); }
 }
 
+// The energy server's address, which the build writes from GYM_RUSH_API. Without one there is no energy, and the
+// save screen offers only a rewarded ad.
+const API = document.querySelector('meta[name="gym-rush-api"]')?.content.replace(/\/+$/, '') || null;
+const DEVICE_KEY = 'gymRushDevice';
+const energyFor = (walls, perfects) => (walls - perfects) * ENERGY_GOOD + perfects * ENERGY_PERFECT;
+
+// The player's energy and this run's continues. The server owns the balance and this only mirrors it. The fields are
+// private and only the game's closure holds the instance, so a button unhidden or enabled from the page can only ask:
+// an energy continue goes through once the server has taken the energy, and an ad continue once the host says a
+// rewarded ad played to the end.
+class Economy {
+  #queue = Promise.resolve();
+  #device = null;
+  #energy = null;
+  #run = null;
+  #earned = 0;
+  #n = 0;
+  #cost = CONTINUE_COST;
+  #ad = 'unused';
+  #busy = false;
+
+  get busy() { return this.#busy; }
+  get watchedAd() { return this.#ad === 'watched'; }
+
+  // Resolves the balance, or null when there is no server or it can't be reached.
+  connect() { return API ? this.#send('/wallet').then(r => this.#took(r).energy, () => null) : Promise.resolve(null); }
+
+  startRun() {
+    this.#run = null; this.#earned = 0; this.#n = 0; this.#cost = CONTINUE_COST; this.#ad = 'unused';
+    if (API) this.#send('/run', {}).then(r => { this.#run = r.run; this.#took(r); }, () => {});
+  }
+
+  // Reports the run's totals so the server credits what they earned. Ending the run closes it.
+  settle(g, end = false) {
+    const run = this.#run;
+    if (!run) return Promise.resolve(null);
+    if (end) this.#run = null;
+    return this.#send(`/run/${run}/settle`, { walls: g.busted, perfects: g.perfects, end }).then(r => this.#took(r), () => null);
+  }
+
+  // What the save screen can offer. The energy shown adds what the run has earned since it last settled, which the
+  // server credits before it charges.
+  offer(g) {
+    const have = this.#energy === null ? null : this.#energy + Math.max(0, energyFor(g.busted, g.perfects) - this.#earned);
+    return {
+      ad: platform.rewarded && this.#ad === 'unused',
+      energy: this.#run && have !== null ? { cost: this.#cost, have, afford: have >= this.#cost } : null,
+    };
+  }
+
+  // Resolves 'ok' once the continue is paid for, or the reason it isn't.
+  async continueWith(method, g) {
+    if (this.#busy) return 'busy';
+    this.#busy = true;
+    try {
+      return await (method === 'ad' ? this.#adContinue(g) : this.#energyContinue(g));
+    } finally {
+      this.#busy = false;
+    }
+  }
+
+  async #adContinue(g) {
+    if (!platform.rewarded || this.#ad !== 'unused') return 'no_ad';
+    this.#ad = 'failed';
+    if (!(await platform.ad('rewarded'))) return 'no_ad';
+    this.#ad = 'watched';
+    // No host lets the server confirm an ad view, so the ad itself pays and the server only counts the continue.
+    const run = this.#run, n = ++this.#n;
+    if (run) await this.#send(`/run/${run}/continue`, { method: 'ad', n, walls: g.busted, perfects: g.perfects }).then(r => this.#took(r), () => {});
+    return 'ok';
+  }
+
+  async #energyContinue(g) {
+    const run = this.#run;
+    if (!run) return 'offline';
+    try {
+      // A retry after a lost reply sends the same n, which the server answers without charging again.
+      this.#took(await this.#send(`/run/${run}/continue`, { method: 'energy', n: this.#n + 1, walls: g.busted, perfects: g.perfects }));
+      this.#n++;
+      return 'ok';
+    } catch (e) {
+      return e.message === 'short' ? 'short' : 'offline';
+    }
+  }
+
+  #took(r) {
+    if ('energy' in r) this.#energy = r.energy;
+    if ('earned' in r) this.#earned = r.earned;
+    if ('cost' in r) this.#cost = r.cost;
+    return r;
+  }
+
+  // Calls go one at a time and in order, so a run's last settle lands before the next run's start closes it.
+  #send(path, body) {
+    const call = this.#queue.then(() => this.#fetch(path, body));
+    this.#queue = call.catch(() => {});
+    return call;
+  }
+
+  async #fetch(path, body) {
+    const res = await fetch(API + path, {
+      method: body ? 'POST' : 'GET',
+      headers: { Authorization: `Bearer ${await this.#auth()}`, ...(body && { 'Content-Type': 'application/json' }) },
+      body: body && JSON.stringify(body),
+      signal: AbortSignal.timeout(8000),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  }
+
+  // A player signed in to the host is named by the host's token, and anyone else by a device the server issued.
+  async #auth() {
+    const token = await platform.token();
+    if (token) return token;
+    this.#device ??= platform.load(DEVICE_KEY) || await this.#newDevice();
+    return `dev:${this.#device}`;
+  }
+
+  async #newDevice() {
+    const res = await fetch(`${API}/device`, { method: 'POST', signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error('device');
+    const { device } = await res.json();
+    platform.save(DEVICE_KEY, device);
+    return device;
+  }
+}
+const economy = new Economy();
+
+const BOLT = '<svg class="bolt" viewBox="0 0 16 24" role="img" aria-label="energy"><use href="#bolt"/></svg>';
+const energyHtml = n => `${Math.round(n).toLocaleString()}${BOLT}`;
+const SAVE_NOTES = {
+  short: 'Not enough energy yet. Every wall you bust earns more.',
+  no_ad: 'No ad right now, so that option is off.',
+  offline: 'Couldn\'t reach the energy bank. Try again in a moment.',
+};
+
+// The last heart opens the save screen when a continue is possible, and goes straight to game over when not.
+function offerSave() {
+  const offer = economy.offer(game);
+  if (!offer.ad && !offer.energy?.afford) { gameOver(); return; }
+  state = 'save'; timeScale = 1; popups = []; bubble = null;
+  showSave(offer);
+  $('saveScreen').hidden = false;
+  focusSave();
+}
+
+function showSave(offer, note = '') {
+  const e = offer.energy;
+  $('adBtn').hidden = !offer.ad;
+  $('energyBtn').hidden = !e;
+  if (e) {
+    $('energyCost').textContent = e.cost.toLocaleString();
+    $('energyBtn').disabled = !e.afford;
+    $('energyBtn').setAttribute('aria-label', `Keep going for ${e.cost} energy`);
+  }
+  $('walletSave').innerHTML = e ? `You have ${energyHtml(e.have)}` : '';
+  $('saveNote').textContent = note;
+}
+
+const focusSave = () => [...$('saveScreen').querySelectorAll('.choices button')].find(b => !b.hidden && !b.disabled).focus();
+
+// Buttons only ask. The economy decides, and the run revives only when it says the continue is paid for.
+async function keepGoing(method) {
+  if (state !== 'save' || economy.busy) return;
+  $('saveScreen').inert = true;
+  const result = await economy.continueWith(method, game);
+  $('saveScreen').inert = false;
+  if (state !== 'save') return;
+  if (result === 'ok') { revive(); return; }
+  showSave(economy.offer(game), SAVE_NOTES[result] || '');
+  focusSave();
+}
+
+function declineSave() {
+  if (state !== 'save' || economy.busy) return;
+  $('saveScreen').hidden = true;
+  gameOver();
+}
+
+function revive() {
+  $('saveScreen').hidden = true;
+  game.hearts = 1;
+  walls = walls.filter(w => w.z >= REVIVE_CLEAR);
+  state = 'stagger'; game.staggerEnd = t + REVIVE_GRACE;
+  popup('BACK IN IT!', '', '#3fb8ff', 58);
+  say('Not again!', 1.4);
+  sfx.level();
+  hud();
+}
+
 function start() {
   audioInit();
   game = newGame(); player = newLifter(PLAYER_COLORS, 0, 0, 0);
@@ -1702,8 +1936,9 @@ function start() {
   meterTarget = meterFront = meterBack = START_CREW / MAX_CREW; meterHold = 0;
   lastHearts = MAX_HEARTS; lastStreak = 0; hitstop = 0; timeScale = 1;
   hud();
-  $('titleScreen').hidden = true; $('overScreen').hidden = true; $('pauseScreen').hidden = true;
+  $('titleScreen').hidden = true; $('overScreen').hidden = true; $('saveScreen').hidden = true; $('pauseScreen').hidden = true;
   state = 'run';
+  economy.startRun();
   introT = 1.6;
   showBanner('STAGE 1', STAGES[0].name);
   say(TAUNTS[0], 2.2, 1.9);
@@ -1724,15 +1959,22 @@ function gameOver() {
   ];
   $('overLine').textContent = lines[Math.floor(Math.random() * lines.length)];
   $('bestOver').textContent = bestText();
+  $('walletOver').hidden = true;
+  economy.settle(game, true).then(r => {
+    if (!r) return;
+    $('walletOver').innerHTML = `+${energyHtml(r.earned)} this run. You have ${energyHtml(r.energy)}.`;
+    $('walletOver').hidden = false;
+  });
   $('overScreen').hidden = false;
   $('againBtn').focus();
 }
 
 // Between runs is where portals allow a midgame ad. The `ad` state keeps a second press from starting a run while it plays.
+// A run that already showed a rewarded ad skips it, since CrazyGames allows only one of the two between the same levels.
 function marchAgain() {
   if (state !== 'over') return;
   state = 'ad';
-  platform.ad('midgame').then(start);
+  (economy.watchedAd ? Promise.resolve() : platform.ad('midgame')).then(start);
 }
 
 function setPaused(p) {
@@ -1851,6 +2093,9 @@ $('muteBtn').addEventListener('click', e => { e.currentTarget.blur(); toggleMute
 $('pauseBtn').addEventListener('click', e => { e.currentTarget.blur(); setPaused(state !== 'paused'); });
 $('startBtn').addEventListener('click', start);
 $('againBtn').addEventListener('click', marchAgain);
+$('adBtn').addEventListener('click', () => keepGoing('ad'));
+$('energyBtn').addEventListener('click', () => keepGoing('energy'));
+$('declineBtn').addEventListener('click', declineSave);
 $('resumeBtn').addEventListener('click', () => setPaused(false));
 document.addEventListener('visibilitychange', () => { if (document.hidden) { setPaused(true); ac?.suspend(); } else ac?.resume(); });
 addEventListener('blur', () => setPaused(true));
@@ -1871,6 +2116,7 @@ hostPlatform().then(p => {
   best = +platform.load('pumpParadeBest') || 0;
   $('bestTitle').textContent = bestText();
   platform.watchMute(on => setHush('host', on));
+  economy.connect().then(n => { if (n !== null) { $('walletTitle').innerHTML = energyHtml(n); $('walletTitle').hidden = false; } });
   if (platform.autostart && state === 'title') start();
 });
 })();
