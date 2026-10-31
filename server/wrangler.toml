@@ -5,6 +5,8 @@ compatibility_date = "2026-10-01"
 [vars]
 # Browsers may call the API from these origins (and from localhost while developing). "*." matches any subdomain.
 ALLOWED_ORIGINS = "https://justjammin.github.io,*.crazygames.com"
+# The game's id from the CrazyGames developer portal. CrazyGames sign-ins are refused until it is set.
+CG_GAME_ID = ""
 
 [[d1_databases]]
 binding = "DB"

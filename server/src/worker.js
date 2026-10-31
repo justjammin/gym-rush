@@ -136,7 +136,8 @@ async function crazyGamesUser(jwt, env) {
   if (!ok && !env.CG_PUBLIC_KEY) { cgKey = null; ok = await check().catch(() => false); }
   if (!ok) throw new HttpError(401, 'bad_token');
   if (!(claims.exp * 1000 > Date.now())) throw new HttpError(401, 'expired_token');
-  if (env.CG_GAME_ID && claims.gameId !== env.CG_GAME_ID) throw new HttpError(401, 'bad_token');
+  // The SDK's local mode hands every developer a demo token signed with the real key, so only this game's id passes.
+  if (!env.CG_GAME_ID || claims.gameId !== env.CG_GAME_ID) throw new HttpError(401, 'bad_token');
   if (typeof claims.userId !== 'string' || !claims.userId) throw new HttpError(401, 'bad_token');
   return claims.userId;
 }
@@ -209,7 +210,7 @@ async function settle(env, player, id, walls, perfects, end) {
 async function continueRun(env, player, id, body) {
   const n = count(body.n), method = body.method;
   if (n < 1 || n > MAX_CONTINUES || (method !== 'energy' && method !== 'ad')) throw new HttpError(400, 'bad_request');
-  await settle(env, player, id, body.walls, body.perfects, false);
+  const { earned } = await settle(env, player, id, body.walls, body.perfects, false);
   const cost = method === 'ad' ? 0 : continueCost(n);
   try {
     await env.DB.batch([
@@ -224,7 +225,7 @@ async function continueRun(env, player, id, body) {
     }
     if (same.method !== method) throw new HttpError(409, 'continue_taken');
   }
-  return json({ energy: await balance(env, player), cost: continueCost(n + 1) });
+  return json({ energy: await balance(env, player), earned, cost: continueCost(n + 1) });
 }
 
 const text = bytes => new TextDecoder().decode(bytes);

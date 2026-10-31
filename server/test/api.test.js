@@ -21,6 +21,7 @@ before(async () => {
     bindings: {
       CG_PUBLIC_KEY: keys.publicKey.export({ type: 'pkcs1', format: 'pem' }).replace(/\n/g, ''),
       ALLOWED_ORIGINS: 'https://justjammin.github.io,*.crazygames.com',
+      CG_GAME_ID: 'g',
     },
   }));
   db = await mf.getD1Database('DB');
@@ -66,6 +67,11 @@ describe('identity', () => {
     const res = await call('/wallet', { token: `cg:${jwt({ userId: 'u1', gameId: 'g', exp: hourFromNow() })}` });
     assert.equal(res.status, 200);
     assert.deepEqual(res.body, { energy: 0 });
+  });
+
+  test('a token for another game, like the SDK\'s local demo token, is refused', async () => {
+    const res = await call('/wallet', { token: `cg:${jwt({ userId: 'idUser1', gameId: 'yourGameId', exp: hourFromNow() })}` });
+    assert.deepEqual([res.status, res.body.error], [401, 'bad_token']);
   });
 
   test('a token signed by any other key is refused', async () => {
@@ -167,9 +173,9 @@ describe('continuing', () => {
     const token = await newPlayer(100);
     const run = await startRun(token);
     const one = await call(`/run/${run}/continue`, { token, body: { method: 'energy', n: 1, walls: 0, perfects: 0 } });
-    assert.deepEqual(one.body, { energy: 70, cost: 60 });
+    assert.deepEqual(one.body, { energy: 70, earned: 0, cost: 60 });
     const two = await call(`/run/${run}/continue`, { token, body: { method: 'energy', n: 2, walls: 0, perfects: 0 } });
-    assert.deepEqual(two.body, { energy: 10, cost: 120 });
+    assert.deepEqual(two.body, { energy: 10, earned: 0, cost: 120 });
     assert.equal(continueCost(3), 120);
   });
 
@@ -177,7 +183,7 @@ describe('continuing', () => {
     const token = await newPlayer(25);
     const run = await startRun(token, 120);
     const res = await call(`/run/${run}/continue`, { token, body: { method: 'energy', n: 1, walls: 5, perfects: 0 } });
-    assert.deepEqual(res.body, { energy: 0, cost: 60 });
+    assert.deepEqual(res.body, { energy: 0, earned: 5, cost: 60 });
   });
 
   test('a double-submitted continue is charged once', async () => {
@@ -195,7 +201,7 @@ describe('continuing', () => {
     const token = await newPlayer(0);
     const run = await startRun(token);
     const first = await call(`/run/${run}/continue`, { token, body: { method: 'ad', n: 1, walls: 0, perfects: 0 } });
-    assert.deepEqual([first.status, first.body], [200, { energy: 0, cost: 60 }]);
+    assert.deepEqual([first.status, first.body], [200, { energy: 0, earned: 0, cost: 60 }]);
     const second = await call(`/run/${run}/continue`, { token, body: { method: 'ad', n: 2, walls: 0, perfects: 0 } });
     assert.deepEqual([second.status, second.body.error], [409, 'ad_used']);
   });
