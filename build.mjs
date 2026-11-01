@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'no
 const NAME = 'Gym Rush';
 const DESCRIPTION = 'Chase a protein-stealing raccoon down winding roads and strike the pose cut into each wall.';
 const BG = '#1d0f2e';
-const SITE = 'https://justjammin.github.io/pump-parade/';
+const SITE = 'https://justjammin.github.io/gym-rush/';
 // Artwork made by tools/store-art: published name in dist/web → file in art/.
 const WEB_ART = { 'icon-192.png': 'icon-192.png', 'icon-512.png': 'icon-512.png', 'apple-touch-icon.png': 'apple-touch-icon.png', 'social.jpg': 'social-1200x630.jpg' };
 // Store covers uploaded beside the zips: name in dist → file in art/.
@@ -20,8 +20,13 @@ const API = process.env.GYM_RUSH_API;
 // Per-host builds. `head` gives the host's tags, from the value of `env` when it needs one, and `zip` is its upload. A host without a zip is a page to host.
 // The game picks its platform row at boot, so a host build only has to load that host's own script.
 const HOSTS = {
-  itch: { zip: 'pump-parade-itch.zip' },
-  crazygames: { head: () => '<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>\n', zip: 'gym-rush-crazygames.zip' },
+  itch: { zip: 'gym-rush-itch.zip' },
+  // A Basic Launch serves no ads and every request fails, so the build leaves ads out until CrazyGames picks the game
+  // for Full Launch and it is rebuilt with CRAZYGAMES_FULL=1.
+  crazygames: {
+    head: () => `${process.env.CRAZYGAMES_FULL ? '' : '<meta name="gym-rush-ads" content="off">\n'}<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>\n`,
+    zip: 'gym-rush-crazygames.zip',
+  },
   gamepix: {
     head: () => `<script>window.GamePixConfig = { lifecycle: 'manual' };</script>
 <script src="https://integration.gamepix.com/sdk/v3/gamepix.sdk.js"></script>
@@ -58,7 +63,7 @@ ${bodyExtra}</body>
 }
 
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
-const serviceWorker = `const CACHE = 'pump-parade-${version}';
+const serviceWorker = `const CACHE = 'gym-rush-${version}';
 const SHELL = ${JSON.stringify(SHELL)};
 
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())));

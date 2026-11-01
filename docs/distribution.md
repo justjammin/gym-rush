@@ -26,8 +26,8 @@ The preview videos follow CrazyGames' rules: no sound, under 20 seconds, opening
 
 ## Week 0: launch on the web
 
-1. **Site.** Live at https://justjammin.github.io/pump-parade/ with the share card.
-2. **itch.io.** Upload `dist/pump-parade-itch.zip` and `dist/itch-cover.jpg`, add the screenshots, tag it (runner, casual, funny, browser) and make it public. Post devlogs there.
+1. **Site.** Live at https://justjammin.github.io/gym-rush/ with the share card.
+2. **itch.io.** Upload `dist/gym-rush-itch.zip` and `dist/itch-cover.jpg`, add the screenshots, tag it (runner, casual, funny, browser) and make it public. Post devlogs there.
 3. **CrazyGames Basic Launch.** Upload `dist/gym-rush-crazygames.zip`, the three covers, the two preview videos, a description and the controls. Turn on **Progress Save** so the best score syncs through the SDK's data module. Basic Launch serves no ads; CrazyGames uses its play data to decide on Full Launch.
 4. **Discord server.** Start one for feedback and to recruit Google Play testers early (see weeks 6–10).
 
