@@ -1,5 +1,5 @@
 {
-  "name": "pump-parade-store-art",
+  "name": "gym-rush-store-art",
   "private": true,
   "type": "module",
   "description": "Generates the store and portal artwork with the Higgsfield CLI, captioned gameplay screenshots, and gameplay preview videos.",

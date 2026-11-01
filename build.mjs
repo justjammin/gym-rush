@@ -20,7 +20,7 @@ const API = process.env.GYM_RUSH_API;
 // Per-host builds. `head` gives the host's tags, from the value of `env` when it needs one, and `zip` is its upload. A host without a zip is a page to host.
 // The game picks its platform row at boot, so a host build only has to load that host's own script.
 const HOSTS = {
-  itch: { zip: 'pump-parade-itch.zip' },
+  itch: { zip: 'gym-rush-itch.zip' },
   crazygames: { head: () => '<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>\n', zip: 'gym-rush-crazygames.zip' },
   gamepix: {
     head: () => `<script>window.GamePixConfig = { lifecycle: 'manual' };</script>
@@ -58,7 +58,7 @@ ${bodyExtra}</body>
 }
 
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
-const serviceWorker = `const CACHE = 'pump-parade-${version}';
+const serviceWorker = `const CACHE = 'gym-rush-${version}';
 const SHELL = ${JSON.stringify(SHELL)};
 
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())));

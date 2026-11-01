@@ -1947,7 +1947,7 @@ function start() {
 function gameOver() {
   state = 'over'; timeScale = 1; popups = []; bubble = null;
   scoreTarget = game.score; chips = [];
-  if (game.score > best) { if (best) platform.happy(); best = game.score; platform.save('pumpParadeBest', String(best)); }
+  if (game.score > best) { if (best) platform.happy(); best = game.score; platform.save('gymRushBest', String(best)); }
   $('overStage').textContent = `STAGE ${game.level} · ${STAGES[game.district].name.toUpperCase()}`;
   $('oScore').textContent = game.score.toLocaleString();
   $('oWalls').textContent = game.busted;
@@ -2113,7 +2113,8 @@ document.fonts?.ready.then(() => { drawIcons(); resize(); });
 requestAnimationFrame(frame);
 hostPlatform().then(p => {
   platform = p; playing = false;
-  best = +platform.load('pumpParadeBest') || 0;
+  // Bests saved before the rename to Gym Rush sit under the old key until the player beats them.
+  best = +(platform.load('gymRushBest') ?? platform.load('pumpParadeBest')) || 0;
   $('bestTitle').textContent = bestText();
   platform.watchMute(on => setHush('host', on));
   economy.connect().then(n => { if (n !== null) { $('walletTitle').innerHTML = energyHtml(n); $('walletTitle').hidden = false; } });

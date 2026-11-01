@@ -33,7 +33,7 @@ npm run build
 `build.mjs` uses only Node built-ins. It reads `index.html` and the artwork in `art/`, and writes:
 
 - `dist/web/`: the installable web app (manifest, icons, social preview image, offline service worker). Every push to `main` deploys it to GitHub Pages.
-- `dist/itch/` and `dist/pump-parade-itch.zip`: the itch.io HTML5 build.
+- `dist/itch/` and `dist/gym-rush-itch.zip`: the itch.io HTML5 build.
 - `dist/itch-cover.jpg`: a 630×500 cover image for the itch.io page.
 - `dist/crazygames-cover-landscape.jpg`, `-portrait.jpg` and `-square.jpg`: the 1920×1080, 800×1200 and 800×800 CrazyGames covers.
 - `dist/crazygames/`, `dist/gamepix/` and `dist/gamedistribution/`, each zipped as `dist/gym-rush-<portal>.zip`: portal builds that load the portal's SDK. The GameDistribution build needs the game ID from the GameDistribution developer portal, as `GD_GAME_ID=<id> npm run build`; without it, that build is skipped.
@@ -130,7 +130,7 @@ Inside Telegram the game expands to full height, turns off swipe-to-close so pos
 ## Publish on itch.io
 
 1. On itch.io, create a project with **Kind of project** set to **HTML**.
-2. Upload `dist/pump-parade-itch.zip` and tick **This file will be played in the browser**.
+2. Upload `dist/gym-rush-itch.zip` and tick **This file will be played in the browser**.
 3. Under **Embed options**, tick **Mobile friendly** and **Fullscreen button**, and set the viewport to 960 × 640.
 4. Upload `dist/itch-cover.jpg` as the cover image.
 5. Keep visibility on **Draft** or **Restricted** until you want it public.

@@ -1,5 +1,5 @@
 {
-  "name": "pump-parade-bake-runner",
+  "name": "gym-rush-bake-runner",
   "private": true,
   "type": "module",
   "description": "Bakes rigged Meshy GLBs into the runner and thief sprite data embedded in index.html.",
