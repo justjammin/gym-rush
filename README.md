@@ -2,7 +2,7 @@
 
 A raccoon has stolen the town's only tub of protein. You and your gym crew chase it down winding, procedurally built roads through four districts, striking the pose cut into each wall to burst through it.
 
-**Play:** https://justjammin.github.io/pump-parade/
+**Play:** https://justjammin.github.io/gym-rush/
 
 The whole game is `index.html`: canvas rendering, Web Audio sound, no dependencies.
 

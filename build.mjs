@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'no
 const NAME = 'Gym Rush';
 const DESCRIPTION = 'Chase a protein-stealing raccoon down winding roads and strike the pose cut into each wall.';
 const BG = '#1d0f2e';
-const SITE = 'https://justjammin.github.io/pump-parade/';
+const SITE = 'https://justjammin.github.io/gym-rush/';
 // Artwork made by tools/store-art: published name in dist/web → file in art/.
 const WEB_ART = { 'icon-192.png': 'icon-192.png', 'icon-512.png': 'icon-512.png', 'apple-touch-icon.png': 'apple-touch-icon.png', 'social.jpg': 'social-1200x630.jpg' };
 // Store covers uploaded beside the zips: name in dist → file in art/.
