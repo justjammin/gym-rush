@@ -91,6 +91,8 @@ Stores require screenshots and videos to show the real game, so only the key art
 
 On CrazyGames the game opens straight into a run, reports gameplay start and stop, saves the best score through the SDK, mutes when the CrazyGames sound setting is off, asks for a midgame ad when the player taps **March again**, and offers a rewarded ad on the **Keep going?** screen. The SDK spaces midgame ads out itself. If an ad fails or is blocked, the next run starts anyway, and a failed rewarded ad gives no continue.
 
+A new game starts on CrazyGames as a Basic Launch, which serves no ads, so the default build leaves ads out and a lost run goes straight to the over screen. Once CrazyGames selects the game for Full Launch, rebuild with `CRAZYGAMES_FULL=1 npm run build` and upload that zip to turn the ads on.
+
 1. In the CrazyGames developer portal, submit a new HTML5 game and upload `dist/gym-rush-crazygames.zip`.
 2. Upload the covers `dist/crazygames-cover-landscape.jpg`, `dist/crazygames-cover-portrait.jpg` and `dist/crazygames-cover-square.jpg`, and the preview videos `art/video-landscape-1920x1080.mp4` and `art/video-portrait-1080x1620.mp4`.
 3. Turn on **Progress Save**. Without it the SDK's data module is off, so neither the best score nor a guest's device wallet is kept between visits.

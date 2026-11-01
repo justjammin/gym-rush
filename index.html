@@ -1738,6 +1738,8 @@ function syncGameplay() {
 // The energy server's address, which the build writes from GYM_RUSH_API. Without one there is no energy, and the
 // save screen offers only a rewarded ad.
 const API = document.querySelector('meta[name="gym-rush-api"]')?.content.replace(/\/+$/, '') || null;
+// A build for a host tier that serves no ads (a CrazyGames Basic Launch) never asks for one, so no dead ad button shows.
+const ADS_OFF = document.querySelector('meta[name="gym-rush-ads"]')?.content === 'off';
 const DEVICE_KEY = 'gymRushDevice';
 const energyFor = (walls, perfects) => (walls - perfects) * ENERGY_GOOD + perfects * ENERGY_PERFECT;
 
@@ -2112,7 +2114,7 @@ meterTarget = meterFront = meterBack = START_CREW / MAX_CREW;
 document.fonts?.ready.then(() => { drawIcons(); resize(); });
 requestAnimationFrame(frame);
 hostPlatform().then(p => {
-  platform = p; playing = false;
+  platform = ADS_OFF ? { ...p, rewarded: false, ad: web.ad } : p; playing = false;
   // Bests saved before the rename to Gym Rush sit under the old key until the player beats them.
   best = +(platform.load('gymRushBest') ?? platform.load('pumpParadeBest')) || 0;
   $('bestTitle').textContent = bestText();

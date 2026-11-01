@@ -21,7 +21,12 @@ const API = process.env.GYM_RUSH_API;
 // The game picks its platform row at boot, so a host build only has to load that host's own script.
 const HOSTS = {
   itch: { zip: 'gym-rush-itch.zip' },
-  crazygames: { head: () => '<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>\n', zip: 'gym-rush-crazygames.zip' },
+  // A Basic Launch serves no ads and every request fails, so the build leaves ads out until CrazyGames picks the game
+  // for Full Launch and it is rebuilt with CRAZYGAMES_FULL=1.
+  crazygames: {
+    head: () => `${process.env.CRAZYGAMES_FULL ? '' : '<meta name="gym-rush-ads" content="off">\n'}<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>\n`,
+    zip: 'gym-rush-crazygames.zip',
+  },
   gamepix: {
     head: () => `<script>window.GamePixConfig = { lifecycle: 'manual' };</script>
 <script src="https://integration.gamepix.com/sdk/v3/gamepix.sdk.js"></script>
